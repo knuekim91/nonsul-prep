@@ -42,6 +42,47 @@
   }
   function univBadge(u){ return el("span",{class:"badge "+u}, [UNIV[u]]); }
 
+  /* ---- 자료(표/그래프) 렌더 & 텍스트화 ---- */
+  function renderMaterial(m){
+    var box=el("div",{class:"material"});
+    if(m.title) box.appendChild(el("div",{class:"mat-title"},[m.title]));
+    if(m.type==="table"){
+      var t=el("table",{class:"data-table"});
+      if(m.head){ var tr=el("tr",{}); m.head.forEach(function(h){tr.appendChild(el("th",{},[h]));}); t.appendChild(el("thead",{},[tr])); }
+      var tb=el("tbody",{});
+      (m.rows||[]).forEach(function(r){ var row=el("tr",{});
+        r.forEach(function(c,ci){ row.appendChild(el(ci===0?"th":"td",{class:ci===0?"rowhead":""},[String(c)])); });
+        tb.appendChild(row); });
+      t.appendChild(tb); box.appendChild(t);
+    } else if(m.type==="bars"){
+      var vals=m.items.map(function(i){return i.value;});
+      var max=m.max||Math.max.apply(null,vals);
+      var wrap=el("div",{class:"bars"});
+      m.items.forEach(function(it){
+        var pct=Math.max(2,Math.round((it.value/max)*100));
+        wrap.appendChild(el("div",{class:"bar-row"},[
+          el("span",{class:"bar-label"},[it.label]),
+          el("span",{class:"bar-track"},[el("span",{class:"bar-fill",style:"width:"+pct+"%"},[])]),
+          el("span",{class:"bar-val"},[String(it.value)])
+        ]));
+      });
+      box.appendChild(wrap);
+    }
+    (m.notes||[]).forEach(function(n){ box.appendChild(el("div",{class:"mat-note"},["※ "+n])); });
+    return box;
+  }
+  function materialToText(m){
+    var out=[]; if(m.title) out.push(m.title);
+    if(m.type==="table"){
+      if(m.head) out.push(m.head.join(" | "));
+      (m.rows||[]).forEach(function(r){ out.push(r.join(" | ")); });
+    } else if(m.type==="bars"){
+      out.push(m.items.map(function(i){return i.label+" "+i.value;}).join(", ")+(m.unit?(" ("+m.unit+")"):""));
+    }
+    (m.notes||[]).forEach(function(n){ out.push("※ "+n); });
+    return out.join("\n");
+  }
+
   /* ---- theme ---- */
   (function(){
     var saved=store.get("theme",null);
@@ -178,9 +219,21 @@
         el("span",{html:"⏱ <b>"+esc(q.time)+"</b>"})
       ]);
 
-      var det=el("details",{},[el("summary",{},["문항 · 제시문 · 접근 가이드 펼치기"])]);
-      det.appendChild(el("div",{class:"block-label"},["제시문 요지"]));
-      det.appendChild(el("ul",{class:"clean"}, q.passages.map(function(p){return el("li",{},[p]);})));
+      var det=el("details",{},[el("summary",{},["📄 시험지 펼치기 (제시문 · 자료 · 문항)"])]);
+
+      if(q.sources && q.sources.length){
+        det.appendChild(el("div",{class:"block-label"},["제시문"]));
+        q.sources.forEach(function(s){
+          det.appendChild(el("div",{class:"source"},[
+            el("span",{class:"source-label"},[s.label]),
+            el("span",{},[" "+s.text])
+          ]));
+        });
+      }
+      if(q.materials && q.materials.length){
+        det.appendChild(el("div",{class:"block-label"},["자료"]));
+        q.materials.forEach(function(m){ det.appendChild(renderMaterial(m)); });
+      }
       det.appendChild(el("div",{class:"block-label"},["문항"]));
       q.prompts.forEach(function(p,i){
         det.appendChild(el("div",{class:"prompt-box"},[p]));
@@ -189,10 +242,15 @@
           el("button",{class:"btn ghost",onclick:function(){go("paper");}},["원고지 인쇄"])
         ]));
       });
-      det.appendChild(el("div",{class:"block-label"},["출제 의도"]));
-      det.appendChild(el("p",{},[q.intent]));
-      det.appendChild(el("div",{class:"block-label"},["접근 팁"]));
-      det.appendChild(el("ul",{class:"clean"}, q.tips.map(function(x){return el("li",{},[x]);})));
+
+      var hint=el("details",{class:"hint"},[el("summary",{},["💡 접근 가이드 보기 (먼저 스스로 써본 뒤 확인!)"])]);
+      hint.appendChild(el("div",{class:"block-label"},["제시문 요지"]));
+      hint.appendChild(el("ul",{class:"clean"}, q.passages.map(function(p){return el("li",{},[p]);})));
+      hint.appendChild(el("div",{class:"block-label"},["출제 의도"]));
+      hint.appendChild(el("p",{},[q.intent]));
+      hint.appendChild(el("div",{class:"block-label"},["접근 팁"]));
+      hint.appendChild(el("ul",{class:"clean"}, q.tips.map(function(x){return el("li",{},[x]);})));
+      det.appendChild(hint);
 
       v.appendChild(el("div",{class:"card q"},[head, meta, det]));
     });
@@ -352,7 +410,7 @@
 "1) 먼저 사진 속 손글씨를 그대로 전사(轉寫)해 주세요. 흐리거나 불확실한 글자는 (?)로 표시하고, 전사한 총 글자 수(공백 제외)를 세어 주세요.",
 "2) 아래 채점 기준으로 평가해 주세요.",
 "",
-"[문항]",
+"[아래는 나은 학생이 푼 문제의 전문입니다]",
 문항블록,
 형식?("[형식 요건] "+형식):null,
 "",
@@ -370,8 +428,13 @@ rubricText(univKey),
     ].filter(function(x){return x!=null;}).join("\n");
   }
   function buildEvalPrompt(q,idx){
-    var 문항 = "· 주제: "+q.title+"\n"+ q.prompts[idx];
-    return evalShell(q.univ, 문항, q.length+" / 권장 작성시간 "+q.time);
+    var parts=["· 주제: "+q.title];
+    if(q.sources&&q.sources.length){ parts.push(""); parts.push("[제시문]");
+      q.sources.forEach(function(s){ parts.push(s.label+") "+s.text); }); }
+    if(q.materials&&q.materials.length){ parts.push(""); parts.push("[자료]");
+      q.materials.forEach(function(m){ parts.push(materialToText(m)); parts.push(""); }); }
+    parts.push("[문항]"); parts.push(q.prompts[idx]);
+    return evalShell(q.univ, parts.join("\n"), q.length+" / 권장 작성시간 "+q.time);
   }
   function buildCustomEvalPrompt(univKey, text){
     return evalShell(univKey, text, null);
