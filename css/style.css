@@ -59,6 +59,8 @@ h2.section{font-size:20px;margin:6px 0 2px;letter-spacing:-.3px}
 .badge.korea{background:var(--korea-weak);color:var(--korea);border-color:var(--korea)}
 .badge.cat{background:var(--accent-weak);color:var(--accent);border-color:var(--accent)}
 .badge.soft{background:var(--surface-2);color:var(--muted);border-color:var(--border)}
+.badge.mode{background:#fff4e0;color:#b26a00;border-color:#e0a860}
+:root[data-theme="dark"] .badge.mode{background:#2e2514;color:#e0a860;border-color:#6b5324}
 
 ul.clean{margin:.3em 0;padding-left:1.1em}
 ul.clean li{margin:.28em 0}

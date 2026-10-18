@@ -183,8 +183,12 @@
     v.appendChild(el("h2",{class:"section"},["예상문제"]));
     v.appendChild(el("p",{class:"lead"},["경영 · 올해 시사 · AI 인문 연계 문항. 대학/주제로 걸러 보세요. 문항마다 ‘평가 프롬프트 복사’ 가능."]));
 
-    var fU=store.get("fU","all"), fC=store.get("fC","all");
+    var fU=store.get("fU","all"), fC=store.get("fC","all"), fM=store.get("fM","all");
     var cats=["경영","시사","AI인문"];
+    var fM_row=el("div",{class:"filters"});
+    [["all","전체"],["실전","🎯 실전·장문"],["기본","🧪 기본·테스트"]].forEach(function(o){
+      fM_row.appendChild(el("button",{class:"chip"+(fM===o[0]?" on":""),onclick:function(){store.set("fM",o[0]);go("questions");}},[o[1]]));
+    });
     var fU_row=el("div",{class:"filters"});
     [["all","전체"],["skku","성균관대"],["korea","고려대"]].forEach(function(o){
       fU_row.appendChild(el("button",{class:"chip"+(fU===o[0]?" on":""),onclick:function(){store.set("fU",o[0]);go("questions");}},[o[1]]));
@@ -193,11 +197,12 @@
     [["all","전체주제"]].concat(cats.map(function(c){return [c,c];})).forEach(function(o){
       fC_row.appendChild(el("button",{class:"chip"+(fC===o[0]?" on":""),onclick:function(){store.set("fC",o[0]);go("questions");}},[o[1]]));
     });
-    v.appendChild(fU_row); v.appendChild(fC_row);
+    v.appendChild(fM_row); v.appendChild(fU_row); v.appendChild(fC_row);
 
     var done=store.get("qdone",{});
     var list=D.questions.filter(function(q){
-      return (fU==="all"||q.univ===fU)&&(fC==="all"||q.category===fC);
+      var mode=q.mode||"기본";
+      return (fM==="all"||mode===fM)&&(fU==="all"||q.univ===fU)&&(fC==="all"||q.category===fC);
     });
     v.appendChild(el("div",{class:"row",style:"margin:8px 0 2px;justify-content:space-between"},[
       el("span",{class:"muted",style:"font-size:13px"},[list.length+"개 문항"]),
@@ -207,7 +212,8 @@
     list.forEach(function(q){
       var head=el("div",{class:"q-head"},[
         el("div",{},[
-          el("div",{class:"row",style:"margin-bottom:5px"},[univBadge(q.univ), el("span",{class:"badge cat"},[q.category])]),
+          el("div",{class:"row",style:"margin-bottom:5px"},[univBadge(q.univ), el("span",{class:"badge cat"},[q.category]),
+            (q.mode==="실전"? el("span",{class:"badge mode"},["🎯 실전·장문"]) : el("span",{class:"badge soft"},["🧪 테스트"]))]),
           el("div",{class:"q-title"},[q.title])
         ]),
         (function(){
