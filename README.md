@@ -27,6 +27,15 @@
 모든 학습 내용은 [`js/content.js`](js/content.js) 한 파일에 들어 있습니다.
 예상문제·전략·요약 등을 추가/수정한 뒤 커밋·푸시하면 사이트에 바로 반영됩니다.
 
+## 문제지 PDF 다시 만들기
+예상문제를 추가/수정한 뒤 PDF도 갱신하려면(한글 폰트: 맑은 고딕, 라이브러리: `pip install reportlab`):
+```bash
+# 1) content.js에서 데이터 추출
+node -e "global.window={};require('./js/content.js');require('fs').writeFileSync('tools/qdata.json',JSON.stringify({universities:window.DATA.universities,questions:window.DATA.questions}))"
+# 2) PDF 생성 (pdf/ 폴더에 문항ID.pdf + all.pdf)
+python tools/gen_pdf.py tools/qdata.json pdf
+```
+
 ## 로컬에서 보기
 ```bash
 cd nonsul-prep
