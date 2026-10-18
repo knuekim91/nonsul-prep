@@ -199,7 +199,10 @@
     var list=D.questions.filter(function(q){
       return (fU==="all"||q.univ===fU)&&(fC==="all"||q.category===fC);
     });
-    v.appendChild(el("p",{class:"muted",style:"font-size:13px;margin:6px 0"},[list.length+"개 문항"]));
+    v.appendChild(el("div",{class:"row",style:"margin:8px 0 2px;justify-content:space-between"},[
+      el("span",{class:"muted",style:"font-size:13px"},[list.length+"개 문항"]),
+      el("a",{class:"pdf-link",href:"pdf/all.pdf",target:"_blank",download:"나은_논술_전체문제지.pdf"},["📕 전체 문제지 PDF 내려받기"])
+    ]));
 
     list.forEach(function(q){
       var head=el("div",{class:"q-head"},[
@@ -216,7 +219,8 @@
       var meta=el("div",{class:"kv"},[
         el("span",{html:"🗓 <b>"+esc(q.issue)+"</b>"}),
         el("span",{html:"✏️ 분량 <b>"+esc(q.length)+"</b>"}),
-        el("span",{html:"⏱ <b>"+esc(q.time)+"</b>"})
+        el("span",{html:"⏱ <b>"+esc(q.time)+"</b>"}),
+        el("a",{class:"pdf-link",href:"pdf/"+q.id+".pdf",target:"_blank",download:"나은_"+q.id+"_문제지.pdf"},["📄 문제지 PDF"])
       ]);
 
       var det=el("details",{},[el("summary",{},["📄 시험지 펼치기 (제시문 · 자료 · 문항)"])]);
