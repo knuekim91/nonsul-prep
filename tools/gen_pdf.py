@@ -91,6 +91,24 @@ def make_bars(m):
         y -= row_h
     return d
 
+def tabulate(m):
+    t = m["type"]
+    if t in ("line", "groupbar"):
+        head = ["구분"] + [str(x) for x in m["xlabels"]]
+        rows = [[s["label"]] + [str(v) for v in s["values"]] for s in m["series"]]
+        return {"caption": "(꺾은선그래프)" if t == "line" else "(군집 막대그래프)", "head": head, "rows": rows}
+    if t == "scatter":
+        head = ["항목", m.get("xlabel", "x"), m.get("ylabel", "y")]
+        rows = [[(p.get("label") or ("점%d" % (i + 1))), str(p["x"]), str(p["y"])] for i, p in enumerate(m["points"])]
+        return {"caption": "(산점도)", "head": head, "rows": rows}
+    if t == "pie":
+        return {"caption": "(원그래프, %)", "head": ["항목", "비율(%)"], "rows": [[it["label"], str(it["value"])] for it in m["items"]]}
+    if t == "stack":
+        head = ["구분"] + list(m["segments"])
+        rows = [[c] + [str(v) for v in m["data"][i]] for i, c in enumerate(m["categories"])]
+        return {"caption": "(100% 누적막대그래프, %)", "head": head, "rows": rows}
+    return {"caption": "", "head": m.get("head"), "rows": m.get("rows", [])}
+
 def question_story(q):
     uname, ucol = UNIV[q["univ"]]
     story = []
@@ -116,6 +134,11 @@ def question_story(q):
                 flow.append(Spacer(1,3)); flow.append(make_table(m))
             elif m["type"] == "bars":
                 flow.append(Spacer(1,3)); flow.append(make_bars(m))
+            else:
+                tb = tabulate(m)
+                if tb.get("caption"):
+                    flow.append(Paragraph("<font color='#5c6670'>%s</font>" % esc(tb["caption"]), st_note))
+                flow.append(Spacer(1,3)); flow.append(make_table({"head": tb["head"], "rows": tb["rows"]}))
             for n in m.get("notes", []):
                 flow.append(Paragraph("※ " + esc(n), st_note))
             story.append(KeepTogether(flow))
