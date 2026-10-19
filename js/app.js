@@ -42,6 +42,92 @@
   }
   function univBadge(u){ return el("span",{class:"badge "+u}, [UNIV[u]]); }
 
+  /* ---- D-day ---- */
+  var DDAY_ITEMS=[["csat","수능"],["skku","성대 논술"],["korea","고대 논술"]];
+  function dDayText(dateStr){
+    if(!dateStr) return null;
+    var today=new Date(); today.setHours(0,0,0,0);
+    var d=new Date(dateStr+"T00:00:00");
+    if(isNaN(d.getTime())) return null;
+    var diff=Math.round((d-today)/86400000);
+    if(diff>0) return "D-"+diff; if(diff===0) return "D-DAY"; return "D+"+(-diff);
+  }
+  function renderDday(v){
+    var box=el("div",{class:"card dday-card"},[ el("h3",{},["📅 D-day"]) ]);
+    var row=el("div",{class:"dday-row"});
+    DDAY_ITEMS.forEach(function(it){
+      var key=it[0], label=it[1];
+      var saved=store.get("dday_"+key,"");
+      var big=el("div",{class:"dday-num"},[dDayText(saved)||"—"]);
+      var inp=el("input",{type:"date",value:saved||""});
+      inp.addEventListener("change",function(){ store.set("dday_"+key, inp.value); big.textContent=dDayText(inp.value)||"—"; });
+      row.appendChild(el("div",{class:"dday-item"},[ el("div",{class:"dday-label"},[label]), big, inp ]));
+    });
+    box.appendChild(row);
+    box.appendChild(el("div",{class:"note"},["날짜를 한 번 입력하면 이 기기에 저장되어 다음에 열 때도 자동으로 표시됩니다. 정확한 날짜는 모집요강으로 확인하세요."]));
+    v.appendChild(box);
+  }
+
+  /* ---- 글자수 세기 ---- */
+  function charCounter(ta){
+    var c=el("div",{class:"char-count"},["0자 (공백 제외 0자)"]);
+    function upd(){
+      var all=ta.value.length, noSpace=ta.value.replace(/\s/g,"").length;
+      c.textContent=all+"자 (공백 제외 "+noSpace+"자)";
+    }
+    ta.addEventListener("input",upd); upd();
+    return c;
+  }
+
+  /* ---- 실전 타이머 ---- */
+  var TMR={remain:0,total:0,running:false,id:null,disp:null};
+  function tmrFmt(s){ s=Math.max(0,s); var m=Math.floor(s/60), r=s%60; return (m<10?"0":"")+m+":"+(r<10?"0":"")+r; }
+  function tmrBeep(){
+    try{
+      var ctx=new (window.AudioContext||window.webkitAudioContext)();
+      [0,0.3,0.6].forEach(function(t){
+        var o=ctx.createOscillator(), g=ctx.createGain();
+        o.frequency.value=880; o.connect(g); g.connect(ctx.destination);
+        g.gain.setValueAtTime(0.0001,ctx.currentTime+t);
+        g.gain.linearRampToValueAtTime(0.25,ctx.currentTime+t+0.02);
+        g.gain.linearRampToValueAtTime(0.0001,ctx.currentTime+t+0.25);
+        o.start(ctx.currentTime+t); o.stop(ctx.currentTime+t+0.26);
+      });
+    }catch(e){}
+  }
+  function tmrUpdate(){ if(TMR.disp) TMR.disp.textContent=tmrFmt(TMR.remain); }
+  function tmrTick(){
+    TMR.remain--; tmrUpdate();
+    if(TMR.remain<=0){ clearInterval(TMR.id); TMR.id=null; TMR.running=false; tmrBeep(); toast("⏰ 시간 종료!"); }
+  }
+  function renderTimer(v){
+    var box=el("div",{class:"card timer-card no-print"},[el("h3",{},["⏱ 실전 타이머"])]);
+    var disp=el("div",{class:"timer-disp"},[tmrFmt(TMR.remain||0)]);
+    TMR.disp=disp;
+    var presets=el("div",{class:"filters"});
+    [[35,"35분"],[80,"80분(고대)"],[100,"100분(성대)"]].forEach(function(p){
+      presets.appendChild(el("button",{class:"chip",onclick:function(){
+        clearInterval(TMR.id); TMR.id=null; TMR.running=false;
+        TMR.total=p[0]*60; TMR.remain=TMR.total; tmrUpdate();
+      }},[p[1]]));
+    });
+    var ctrl=el("div",{class:"row",style:"margin-top:8px"},[
+      el("button",{class:"btn primary",onclick:function(){
+        if(TMR.running||TMR.remain<=0) return;
+        TMR.running=true; TMR.id=setInterval(tmrTick,1000);
+      }},["▶ 시작"]),
+      el("button",{class:"btn",onclick:function(){
+        clearInterval(TMR.id); TMR.id=null; TMR.running=false;
+      }},["⏸ 일시정지"]),
+      el("button",{class:"btn ghost",onclick:function(){
+        clearInterval(TMR.id); TMR.id=null; TMR.running=false; TMR.remain=TMR.total; tmrUpdate();
+      }},["↺ 리셋"])
+    ]);
+    box.appendChild(presets); box.appendChild(disp); box.appendChild(ctrl);
+    box.appendChild(el("div",{class:"note"},["실제 시험처럼 시간을 재며 손글씨로 써 보세요. 시간이 끝나면 소리로 알려줍니다."]));
+    v.appendChild(box);
+  }
+
   /* ---- 자료(표/그래프) 렌더 & 텍스트화 ---- */
   var SVGNS="http://www.w3.org/2000/svg";
   var PAL=["#2f6fed","#1b9e77","#d9534f","#f0ad4e","#7b61ff","#20c0c7"];
@@ -217,6 +303,8 @@
   VIEWS.home=function(v){
     v.appendChild(el("h2",{class:"section"},["나은, 논술 준비 시작! ✍️"]));
     v.appendChild(el("p",{class:"lead"},["성균관대(언어형) · 고려대(인문계열) · 경영학과 중심 학습 공간"]));
+
+    renderDday(v);
 
     ["skku","korea"].forEach(function(key){
       var u=D.universities[key];
@@ -402,6 +490,21 @@
       rm.appendChild(box);
     });
     v.appendChild(rm);
+
+    var ed=el("div",{class:"card"},[el("h3",{},["🧾 시험 당일 체크리스트"])]);
+    D.examDayChecklist.forEach(function(g){
+      ed.appendChild(el("div",{class:"block-label"},[g.group]));
+      var checks=store.get("examday",{});
+      var list=el("div",{});
+      g.items.forEach(function(it,ii){
+        var key=g.group+"_"+ii;
+        var cb=el("input",{type:"checkbox"}); cb.checked=!!checks[key];
+        cb.addEventListener("change",function(){checks[key]=cb.checked;store.set("examday",checks);});
+        list.appendChild(el("label",{class:"check"},[cb, el("span",{},[it])]));
+      });
+      ed.appendChild(list);
+    });
+    v.appendChild(ed);
   };
 
   VIEWS.summary=function(v){
@@ -463,7 +566,7 @@
     v.appendChild(el("div",{class:"card"},[
       el("h3",{},["② 직접 입력한 문항으로 평가"]),
       el("div",{class:"block-label"},["대학"]), uSel,
-      el("div",{class:"block-label"},["문항 내용"]), ta,
+      el("div",{class:"block-label"},["문항 내용"]), ta, charCounter(ta),
       el("div",{class:"row",style:"margin-top:10px"},[
         el("button",{class:"btn primary",onclick:function(){
           var txt=ta.value.trim(); if(!txt){toast("문항을 입력하세요");return;}
@@ -485,6 +588,15 @@
     controls.appendChild(el("button",{class:"btn primary",onclick:function(){window.print();}},["🖨 인쇄 / PDF 저장"]));
     v.appendChild(controls);
     v.appendChild(el("div",{class:"note no-print"},["팁: 인쇄 대화상자에서 ‘PDF로 저장’을 고르면 파일로도 보관됩니다. 고려대는 700±50자, 성균관대는 문항별 지정 분량을 확인하세요."]));
+
+    renderTimer(v);
+
+    var draftTa=el("textarea",{rows:"8",class:"no-print",placeholder:"원고지에 옮기기 전, 여기서 초안을 먼저 써 보고 글자 수를 확인하세요 (저장되지 않음)."});
+    var draftBox=el("div",{class:"card no-print"},[
+      el("h3",{},["✏️ 초안 작성 & 글자수 확인 (선택)"]),
+      draftTa, charCounter(draftTa)
+    ]);
+    v.appendChild(draftBox);
 
     var cols=20, rows=Math.ceil(size/cols);
     var head=el("div",{class:"gp-head"},["이름: ____________   날짜: ____________   문항: ____________________   ( "+size+"자 / "+cols+"칸 × "+rows+"줄 )"]);
