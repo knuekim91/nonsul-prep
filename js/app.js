@@ -280,6 +280,7 @@
     {id:"questions",label:"예상문제"},
     {id:"answers",label:"모범답안"},
     {id:"strategy",label:"공부전략"},
+    {id:"length",label:"분량가이드"},
     {id:"summary",label:"요약본"},
     {id:"eval",label:"답안평가"},
     {id:"paper",label:"원고지"}
@@ -299,6 +300,62 @@
 
   /* ================= VIEWS ================= */
   var VIEWS={};
+
+  VIEWS.length=function(v){
+    var L=D.skkuLength;
+    v.appendChild(el("h2",{class:"section"},["성균관대 답안 분량 가이드 📏"]));
+    v.appendChild(el("p",{class:"lead"},["성대 언어형은 글자 수 제한이 없는 ‘줄 노트’ 형식 — 얼마나 쓰느냐가 합불을 가릅니다."]));
+
+    // 핵심 목표
+    v.appendChild(el("div",{class:"card dday-card"},[
+      el("div",{class:"block-label"},["권장 총 분량"]),
+      el("div",{class:"len-big"},[L.totalTarget]),
+      el("div",{class:"muted",style:"font-size:13px;margin-top:4px"},[L.totalNote])
+    ]));
+
+    v.appendChild(el("div",{class:"card"},[ el("p",{},[L.intro]) ]));
+
+    // 문항별 권장 줄 수 표
+    var t=el("table",{class:"data-table"});
+    t.appendChild(el("thead",{},[el("tr",{},[
+      el("th",{},["문항"]), el("th",{},["권장 줄 수"]), el("th",{},["포인트"]) ])]));
+    var tb=el("tbody",{});
+    L.byItem.forEach(function(r){
+      tb.appendChild(el("tr",{},[
+        el("th",{class:"rowhead"},[r.item]),
+        el("td",{},[r.lines]),
+        el("td",{style:"text-align:left"},[r.point])
+      ]));
+    });
+    t.appendChild(tb);
+    v.appendChild(el("div",{class:"card"},[
+      el("div",{class:"block-label"},["문항별 권장 분량 (20줄 기준)"]), t ]));
+
+    // 왜 많이 써야 하나
+    v.appendChild(el("div",{class:"card"},[
+      el("h3",{},["왜 ‘풍성하게’ 써야 하나"]),
+      el("ul",{class:"clean"}, L.whyLong.map(function(x){return el("li",{},[x]);}))
+    ]));
+
+    // 실전 팁
+    v.appendChild(el("div",{class:"card"},[
+      el("h3",{},["실전 분량 전략"]),
+      el("ul",{class:"clean"}, L.tips.map(function(x){return el("li",{},[x]);}))
+    ]));
+
+    v.appendChild(el("div",{class:"note"},["⚠️ "+L.caution]));
+    v.appendChild(el("div",{class:"note"},["🏛 "+L.koreaContrast]));
+
+    // 출처
+    v.appendChild(el("div",{class:"card"},[
+      el("div",{class:"block-label"},["출처"]),
+      el("p",{style:"font-size:13.5px;margin:2px 0"},[
+        el("a",{href:L.source.url,target:"_blank",rel:"noopener"},[L.source.title]),
+        el("span",{class:"muted"},[" — "+L.source.author+" · "+L.source.date])
+      ]),
+      el("div",{class:"muted",style:"font-size:12px"},["※ 외부 강사의 조언을 정리한 참고 자료입니다."])
+    ]));
+  };
 
   VIEWS.home=function(v){
     v.appendChild(el("h2",{class:"section"},["나은, 논술 준비 시작! ✍️"]));
