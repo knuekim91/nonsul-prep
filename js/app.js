@@ -635,8 +635,14 @@
   };
 
   VIEWS.paper=function(v){
-    v.appendChild(el("h2",{class:"section"},["원고지 (실전 연습용)"]));
-    v.appendChild(el("p",{class:"lead no-print"},["칸 수를 고르고 인쇄해, 실제 시험처럼 손글씨로 연습하세요. 20칸 × 줄 구성."]));
+    v.appendChild(el("h2",{class:"section"},["답안지 · 원고지 (실전 연습용)"]));
+    v.appendChild(el("div",{class:"card no-print",style:"border-left:4px solid var(--skku);"},[
+      el("h3",{},["📝 성균관대 줄글 연습지 (A4, 실전 양식)"]),
+      el("p",{style:"margin:4px 0 10px"},["성대 언어논술 실제 답안지는 네모칸 원고지가 아니라 ",el("b",{},["가로줄만 있는 ‘줄 노트’ 형식"]),"입니다. 아래 PDF를 인쇄해 실전과 똑같은 포맷으로 손글씨 연습을 하세요. (문제 1·2·3 + 자유연습 4쪽)"]),
+      el("a",{class:"pdf-link",href:"pdf/skku-answer-sheet.pdf",target:"_blank",download:"성대_줄글_연습답안지.pdf"},["📄 성대 줄글 연습지 PDF 내려받기"]),
+      el("div",{class:"note",style:"margin-top:8px"},["검은색 필기구만 · 수정은 두 줄 긋기(수정액·테이프 금지) · 지정 영역 내 작성. ※ 실전 연습용이며 성대 공식 답안지가 아니라 양식을 재현한 것입니다."])
+    ]));
+    v.appendChild(el("p",{class:"lead no-print"},["아래 원고지는 ",el("b",{},["글자 수 감각"]),"을 익히는 용도예요(고려대 700자 등). 성대 줄글 연습은 위 PDF를 쓰세요. 칸 수를 고르고 인쇄해 손글씨로 연습하세요."]));
     var size=store.get("paperSize",1000);
     var controls=el("div",{class:"mp-controls no-print"},[]);
     [[700,"고려대형 700자"],[1000,"1000자"],[800,"800자"],[1600,"장문 1600자"]].forEach(function(o){
